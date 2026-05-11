@@ -17,17 +17,17 @@ curl -O https://raw.githubusercontent.com/ox2lab/ox2-open-skills/main/install-sk
 
 전체 스킬 설치
 ```bash
-sh install-skills.sh
+sh install-ox2-skills.sh
 ```
 
 특정 스킬만 설치
 ```bash
-sh install-skills.sh [스킬 이름] [스킬 이름] ...
+sh install-ox2-skills.sh [스킬 이름] [스킬 이름] ...
 ```
 
 예시
 ```bash
-sh install-skills.sh ox2-core ox2-harness ...
+sh install-ox2-skills.sh ox2-core ox2-harness ...
 ```
 
 ### 3. 설치 위치
