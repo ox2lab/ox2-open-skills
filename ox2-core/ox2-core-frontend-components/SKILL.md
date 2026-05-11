@@ -1,0 +1,110 @@
+---
+name: ox2-core-frontend-components
+description: ox2-core 프론트엔드 컴포넌트, 페이지 스크립트, 폼 처리, 모델 호출, 커스텀 엘리먼트, LazyLoader 기반 모듈 로딩을 작성하거나 검토할 때 사용한다. 사용자가 ox2-core 프론트엔드, 웹 컴포넌트, ModelProxy, FormManager, command 이벤트 패턴을 언급하면 반드시 이 스킬을 사용하고, TView나 UIManager 같은 보조 패턴은 대상 프로젝트의 실제 런타임 존재를 확인한 뒤 적용한다.
+---
+
+# ox2-core 프론트엔드 컴포넌트 작성 지침
+
+이 스킬은 ox2-core 프론트엔드 코드의 모양, 네이밍, 이벤트 처리, 유틸리티 사용 방식을 맞추기 위한 작업 지침이다. 대상 코드와 충돌하는 부분이 있으면 먼저 현재 파일과 사용 가능한 런타임 파일의 존재 여부를 확인한다.
+
+## 기본 작성 방향
+
+HTML은 시맨틱 태그를 우선 사용하고 불필요한 래퍼를 줄인다. 템플릿 문법은 `ox2-core-view-template` 지침과 실제 템플릿 엔진 동작을 우선한다. `FRAMEWORK_VERSION >= 3`이면 이중 중괄호를 쓰지만, 전역 변수 치환의 루트 접두사는 실제 코드상 `@`만 허용되고 접두사가 없으면 루트 프로퍼티로 처리된다. 따라서 점 접두사 또는 콜론 접두사 루트 변수 예시를 새 템플릿 문법으로 그대로 권장하지 말고, 대상 템플릿 엔진과 기존 파일 문법을 확인한다.
+
+JavaScript는 MVC 구분을 따른다. `Model`은 데이터와 API 호출, `View`는 DOM 요소와 렌더링, `Butler` 또는 페이지 컨트롤러는 초기화와 흐름 제어를 맡긴다. 중괄호는 함수, 클래스, 조건문, 반복문에서 새 줄에 두고 들여쓰기는 탭을 사용한다. 객체 리터럴은 기존 코드처럼 같은 줄의 중괄호를 허용한다.
+
+CSS는 `base.css`, `common.css`, 페이지별 `detail.css` 역할 구분을 따른다. 기능성 클래스는 `command-delete`, `command-update`처럼 `command-` 접두사를 사용하고, 상태는 `is-active`, `is-disabled`처럼 표현한다. 깊은 선택자 체인보다 단일 클래스와 직접 선택자를 선호한다.
+
+## LazyLoader 네이밍과 자동 import
+
+커스텀 엘리먼트와 LazyLoader를 사용할 때는 태그 이름이 로딩 경로를 결정한다는 점을 기준으로 설계한다.
+
+- `wdgt-`는 `widget`, `cmp-`는 `component`, `cls-`는 `class`, `tpl-`은 `template`, `util-`은 `util`, `model-`은 `model` 네임스페이스로 해석된다.
+- `wdgt-alert-modal` 같은 태그는 `AlertModal.class.js`처럼 하이픈 뒤 단어를 PascalCase 클래스명으로 변환하는 샘플 규칙을 따른다.
+- `LazyLoader.class.js`는 `MutationObserver`로 `wdgt-`, `cmp-`, `cls-`, `tpl-` 태그 추가를 감지하고 `whenDefined(tagName)`으로 `import()`를 수행한다.
+- HTML에서 자동 로딩을 기대할 때는 `LazyLoader.class.js`가 `head`에 포함되어 있는지 확인한다.
+- 명시 로딩이 필요하면 `const loader = LazyLoader.getInstance();` 후 `Promise.all([loader.whenDefined('util-ui-manager'), ...])` 패턴으로 병렬 로딩한다.
+- 직접 파일을 로드해야 할 때만 `LazyLoader.getInstance().import(uri)`를 사용하고, 불필요한 즉시 로딩은 피한다.
+
+자동 import를 전제로 새 태그를 만들 때는 태그명, 파일명, `customElements.define()` 이름이 서로 맞는지 확인한다. 샘플에 없는 prefix나 경로 규칙은 임의로 만들지 않는다.
+
+## ModelProxy 응답 처리
+
+모델 클래스는 순수하게 API 호출과 데이터 반환에 집중시킨다. 응답 코드 판단, 로그인 필요 처리, 성공/실패 UI 처리는 `ModelProxy` 사용 지점에서 처리한다.
+
+- 성공 코드는 샘플 기준 `100`이다.
+- 로그인 필요 코드는 샘플 기준 `-9999`이며, `requireLogin()`은 필요 시 `cmp-session-mgr`를 로드한 뒤 `SessionMgr.getInstance().logout()`을 호출한다.
+- `new ModelProxy(Post)`처럼 모델 클래스를 감싸고, 비동기 모델 메서드는 `await postProxy.delete(no)`처럼 호출한다.
+- 이후 `await postProxy.requireLogin()`을 호출하고, `success(...)`, `fail(...)`, `error(...)` 체이닝으로 UI 피드백을 연결한다.
+- 한 흐름에서 같은 모델을 여러 번 호출하면 `ModelProxy` 인스턴스를 재사용한다.
+
+모델 샘플인 `Board.class.js`에는 직접 `alert()`와 로그인 처리 코드가 남아 있다. 새 코드를 작성할 때는 문서의 개선 방향과 `ModelProxy.class.js` 샘플을 우선해 모델 내부 UI 처리를 줄인다. 단, 기존 파일을 수정하는 경우에는 주변 코드의 현재 패턴과 변경 범위를 먼저 확인한다.
+
+## FormManager 저장과 복원
+
+폼 상태 저장/복원이 필요하면 `FormManager` 샘플의 localStorage 기반 흐름을 따른다.
+
+- 생성자에 form을 넘기면 form id가 있을 때 `FORM_SETTING_HASH_${form.id}` 저장키를 사용한다.
+- form id가 없으면 요소의 `nodeName-name` 조합을 정렬해 해시 기반 저장키를 만든다.
+- `collectSettings(form)`은 `name`이 있는 요소의 값을 수집하고, `dataset`이 있으면 `${name}_dataset` 형태로 함께 저장한다.
+- `saveSettings(settings)`는 현재 storage key에 JSON 문자열로 저장한다.
+- `loadSettings()`는 저장된 JSON을 읽고 파싱 실패 시 `null`을 반환한다.
+- `applySettings(form, settings)`는 checkbox, radio, select-multiple, file, 기본 input 타입별로 값을 복원하고 `change` 이벤트를 발생시킨다.
+
+파일 input은 보안상 값을 복원할 수 없으므로 파일명 정보만 참고용으로 다룬다. 저장키를 직접 제어해야 하는 화면에서는 `setKey(storageKey)`를 먼저 호출해 화면/사용자/탭별 충돌을 피한다.
+
+## 커스텀 엘리먼트 패턴
+
+웹 컴포넌트는 `HTMLElement`를 상속하고 필요한 경우 `attachShadow({ mode: 'open' })`을 사용한다. 템플릿은 private 필드에 캐시하고 `content.cloneNode(true)`로 복제한다.
+
+권장 구조:
+
+- `constructor()`에서는 기본 필드와 Shadow DOM만 준비한다.
+- `connectedCallback()`에서 렌더링과 이벤트 등록을 수행한다.
+- `disconnectedCallback()`에서 이벤트 리스너, 타이머, 외부 구독을 정리한다.
+- `static get observedAttributes()`로 관찰 속성을 선언한다.
+- `attributeChangedCallback(name, oldValue, newValue)`에서는 값이 같으면 즉시 반환한다.
+- 마지막에 `customElements.define('wdgt-sample-name', SampleName)`처럼 태그명과 클래스를 등록한다.
+
+샘플에는 `FormSpinner`처럼 싱글톤으로 body에 붙는 컴포넌트와 `AlertModal`처럼 `wdgt-` 태그로 자동 로딩 가능한 컴포넌트가 있다. 새 컴포넌트가 전역 UI인지, 페이지 내부 반복 컴포넌트인지에 따라 싱글톤 여부를 결정한다.
+
+## 이벤트 위임
+
+클릭 가능한 명령은 개별 요소마다 리스너를 붙이기보다 상위 컨테이너나 document에 이벤트를 위임한다.
+
+- 버튼/링크에는 `command-delete-post`, `command-copy-current-url`, `command-upvote-toggle`처럼 `command-` 접두사를 붙인다.
+- 핸들러에서는 `e.composedPath().find(...)`로 Shadow DOM 경계를 포함해 명령 요소를 찾는다.
+- `className`이 문자열인지 확인한 뒤 `command` 포함 여부를 검사한다.
+- 실제 작업은 `handleDelete()`, `handleSave()`, `toggleUpvote()`처럼 별도 메서드로 분리한다.
+- 명령을 처리했으면 `return true`로 탐색을 끝낸다.
+
+이 패턴은 문서와 `AlertModal.class.js` 샘플 모두에서 확인된다. Shadow DOM 내부 이벤트까지 다룰 가능성이 있으면 `event.target.closest()`만으로 단정하지 말고 `composedPath()` 패턴을 우선 검토한다.
+
+## Tview와 UIManager 사용 주의
+
+`Tview`와 `UIManager`는 보조 패턴에 자주 등장하지만, 프로젝트에 따라 일부 사용 예시나 의존 관계만 있고 전체 구현이 완전하게 포함되어 있지 않을 수 있다. 사용 전에 대상 프로젝트에 실제 런타임 파일, 커스텀 엘리먼트 등록명, 전역 객체 노출 여부가 있는지 확인한다.
+
+- `Tview.search`, `Tview.search_all`, `Tview.upgrade`, `.text()`, `.number()`, `.date_format()`, `.bg_image()`, `.show()`, `.hide()` 같은 헬퍼는 보조 패턴이다. 실제 구현이 없으면 일반 DOM API 또는 기존 헬퍼로 대체한다.
+- `UIManager.getInstance()`, `UI.toast()`, `UI.confirm()`도 보조 패턴이다. 실제 `util-ui-manager` 또는 동등 모듈이 있는지 `LazyLoader.whenDefined('util-ui-manager')` 가능 여부까지 확인한다.
+- 보조 패턴을 새 코드에 적용할 때는 존재 확인 코드를 추가하거나, 이미 해당 헬퍼를 쓰는 주변 파일과 같은 방식으로 로드한다.
+- 기존 예시에 없다는 이유만으로 보조 패턴을 금지하지 말고, 반대로 보조 패턴에 있다는 이유만으로 런타임 존재를 가정하지 않는다.
+
+## 자주 발생하는 실수
+
+- 문서에 등장하는 `Tview`나 `UIManager`가 대상 프로젝트에 실제로 존재한다고 가정한다.
+- LazyLoader 태그 prefix, 파일명, `customElements.define()` 이름을 서로 다르게 만든다.
+- 모델 클래스 안에서 alert, confirm, 로그인 처리, 화면 이동까지 모두 처리해 `ModelProxy` 책임과 섞는다.
+- 이벤트 위임 대신 반복 항목마다 리스너를 붙여 동적 추가 요소가 동작하지 않는다.
+- 파일 input 값을 `FormManager`로 복원할 수 있다고 기대한다.
+
+## 검증 체크리스트
+
+프론트엔드 코드를 작성하거나 고칠 때 다음 순서로 확인한다.
+
+1. 대상 파일이 어떤 템플릿 문법과 컴포넌트 패턴을 이미 따르는지 읽는다.
+2. LazyLoader가 필요한 태그명, prefix, 파일명, `customElements.define()` 이름을 맞춘다.
+3. 모델은 API 호출 중심으로 유지하고, 응답 처리와 UI 피드백은 `ModelProxy`와 UI 계층으로 분리한다.
+4. 폼 저장/복원은 `FormManager`의 저장키, dataset, change 이벤트 복원 방식을 따른다.
+5. 명령형 UI 동작은 `command-` 클래스와 이벤트 위임으로 묶는다.
+6. Tview/UIManager는 실제 존재를 확인한 뒤 사용하고, 없으면 주변 코드의 기존 대체 패턴을 따른다.
+7. CSS는 페이지별 파일에 필요한 스타일만 추가하고, 가상 요소와 단순 선택자로 불필요한 마크업을 줄인다.
