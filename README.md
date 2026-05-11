@@ -10,7 +10,7 @@
 ### 1. 설치 스크립트 다운로드
 
 ```bash
-curl -O https://raw.githubusercontent.com/ox2lab/ox2-open-skills/main/install-skills.sh
+curl -O https://raw.githubusercontent.com/ox2lab/ox2-open-skills/main/install-ox2-skills.sh
 ```
 
 ### 2. 스크립트 실행
