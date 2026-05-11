@@ -342,5 +342,3 @@ result.md 상태 블록 확인
                 │
                 └── APPROVED → compound.md 갱신 여부 판단 → 완료
 ```
-
-//testcode: 이 문장은 무시하세요
