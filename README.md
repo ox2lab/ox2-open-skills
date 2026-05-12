@@ -1,4 +1,4 @@
-# ox2-open-skills
+# OX2Lab skills
 
 옥스투랩 AI Skills 모음 저장소입니다.
 
@@ -11,17 +11,17 @@
 프로젝트에 모든 스킬을 설치하려면 아래 명령어를 실행하세요.
 `--agent universal` 플래그는 대부분의 에이전트가 사용하는 표준 `.agents/skills` 폴더에 설치합니다.
 ```bash
-npx skills add ox2lab/ox2-open-skills --skill '*' --agent universal
+npx skills add ox2lab/skills --skill '*' --agent universal
 ```
 
 ### 특정 스킬만 설치
 ```bash
-npx skills add ox2lab/ox2-open-skills --skill '스킬 이름' --skill '스킬 이름' --agent universal
+npx skills add ox2lab/skills --skill '스킬 이름' --skill '스킬 이름' --agent universal
 ```
 
 ### 예시
 ```bash
-npx skills add ox2lab/ox2-open-skills --skill 'ox2-harness' --skill 'ox2-grill-me' --agent universal
+npx skills add ox2lab/skills --skill 'ox2-harness' --skill 'ox2-grill-me' --agent universal
 ```
 
 ## 스킬 업데이트
