@@ -7,32 +7,17 @@
 
 ## 스킬 설치
 
-### 1. 설치 스크립트 다운로드
-
-```bash
-curl -O https://raw.githubusercontent.com/ox2lab/ox2-open-skills/main/install-ox2-skills.sh
-```
-
-### 2. 스크립트 실행
-
 전체 스킬 설치
 ```bash
-sh install-ox2-skills.sh
+npx skills add ox2lab/ox2-open-skills --skill '*' --agent universal
 ```
 
 특정 스킬만 설치
 ```bash
-sh install-ox2-skills.sh [스킬 이름] [스킬 이름] ...
+npx skills add ox2lab/ox2-open-skills --skill '스킬 이름' --skill '스킬 이름' --agent universal
 ```
 
 예시
 ```bash
-sh install-ox2-skills.sh ox2-core ox2-harness ...
-```
-
-### 3. 설치 위치
-
-스킬은 아래 폴더에 설치됩니다.
-```text
-.agents/skills/
+npx skills add ox2lab/ox2-open-skills --skill 'ox2-harness' --skill 'ox2-grill-me' --agent universal
 ```
